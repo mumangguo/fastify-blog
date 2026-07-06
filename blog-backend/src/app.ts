@@ -27,6 +27,11 @@ async function build() {
   await fastify.register(dateFormatPlugin)
   await fastify.register(staticPlugin)
   await fastify.register(swaggerPlugin)
+  await fastify.register(import('@fastify/multipart'), {
+    limits: {
+      fileSize: 10 * 1024 * 1024,
+    },
+  })
 
   // 注册业务模块路由
   await fastify.register(import('./modules/user/user.routes'))

@@ -6,3 +6,11 @@ blog-backend/prisma/dev.db
 blog-backend/public/uploads/
 .uploads/
 *.tsbuildinfo
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

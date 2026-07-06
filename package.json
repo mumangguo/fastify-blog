@@ -10,12 +10,12 @@
     "build:frontend": "cd blog-frontend && npm run build",
     "build:backend": "cd blog-backend && npm run build:prepare && npm run build",
     "build": "npm run build:backend && npm run build:frontend",
-    "postinstall": "cd blog-backend && npx prisma generate"
+    "setup": "npm --prefix blog-backend install && npm --prefix blog-frontend install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   }
 }
