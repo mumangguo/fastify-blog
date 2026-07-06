@@ -6,6 +6,7 @@ import { Eye, Calendar, User, Mail, Globe, Send } from 'lucide-react'
 import { getArticleDetail } from '@/api/article'
 import { getArticleComments, submitComment } from '@/api/comment'
 import SeoMeta from '@/components/SeoMeta'
+import { SkeletonArticleDetail } from '@/components/Skeleton'
 
 export default function ArticleDetailPage() {
   const { id } = useParams()
@@ -36,7 +37,7 @@ export default function ArticleDetailPage() {
     }
   }
 
-  if (!article) return <div className="text-center py-20">加载中...</div>
+  if (!article) return <SkeletonArticleDetail />
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

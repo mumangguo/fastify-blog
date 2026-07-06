@@ -7,6 +7,7 @@ import { Search } from 'lucide-react'
 import { getCategoryList } from '@/api/category'
 import { getSiteConfig } from '@/api/siteConfig'
 import BlogChatBot from '@/components/BlogChatBot'
+import SelectionAskMenu from '@/components/SelectionAskMenu'
 import GlobalSearch from '@/components/GlobalSearch'
 
 export default function FrontLayout() {
@@ -123,6 +124,9 @@ export default function FrontLayout() {
 
       {/* AI 博客分身 */}
       <BlogChatBot />
+
+      {/* 选中文字浮出菜单：可把选段发给博客分身 */}
+      <SelectionAskMenu />
 
       {/* 全局搜索弹窗 */}
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />

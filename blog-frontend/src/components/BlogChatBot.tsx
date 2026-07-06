@@ -41,53 +41,77 @@ export default function BlogChatBot() {
       })
   }, [open, articles.length])
 
-  const handleSend = () => {
-    const text = input.trim()
-    if (!text) return
+  // 全局事件：外部（如"选中文字问博客分身"浮出菜单）可派发 blog-chat:ask
+  // 事件，携带 detail.text，聊天框会自动打开并把该文本作为用户消息发送。
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ text: string }>).detail
+      const text = detail?.text?.trim()
+      if (!text) return
+      setOpen(true)
+      // 用一个微小的延迟让面板先展开，避免消息尚未挂载时闪
+      setTimeout(() => sendMessage(text), 60)
+    }
+    window.addEventListener('blog-chat:ask', handler)
+    return () => window.removeEventListener('blog-chat:ask', handler)
+  }, [])
 
-    const userMsg: Message = { role: 'user', content: text }
-    setMessages((prev) => [...prev, userMsg])
-    setInput('')
+  // 发送一条用户消息并开启流式回复。抽出可复用函数，供输入框回车、
+  // 外部 blog-chat:ask 事件（如"选中文字问博客分身"浮出菜单）共同调用。
+  const sendMessage = (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed) return
 
-    // 添加一个正在流式输出的空消息占位
-    setMessages((prev) => [...prev, { role: 'assistant', content: '', streaming: true }])
+    // 用 flushSync 之前的技巧不适用；此处直接用 setState 更新器读到最新 messages。
+    // 因为 SSE 需要"发送前的历史"，我们先通过一次 setter 拿到快照，再触发流式请求。
+    let history: Array<{ role: string; content: string }> = []
+    setMessages((prev) => {
+      history = prev
+        .filter((m) => !m.streaming)
+        .map((m) => ({ role: m.role, content: m.content }))
+      return [
+        ...prev,
+        { role: 'user', content: trimmed },
+        { role: 'assistant', content: '', streaming: true },
+      ]
+    })
 
     let fullText = ''
-
-    const history = messages
-      .filter((m) => !m.streaming)
-      .map((m) => ({ role: m.role, content: m.content }))
-
     abortRef.current = ssePost(
       '/ai/chat',
-      { message: text, history },
+      { message: trimmed, history },
       (delta) => {
         fullText += delta
-        // 不可变更新：替换成新的消息对象，否则 React 引用比较认为未变、不重渲染，
-        // 打字机效果会被吃掉，直到流结束才一次性显示。
-        setMessages((prev) => {
-          const last = prev[prev.length - 1]
-          if (!last || last.role !== 'assistant' || !last.streaming) return prev
-          return [...prev.slice(0, -1), { ...last, content: fullText }]
+        setMessages((cur) => {
+          const last = cur[cur.length - 1]
+          if (!last || last.role !== 'assistant' || !last.streaming) return cur
+          return [...cur.slice(0, -1), { ...last, content: fullText }]
         })
       },
       () => {
-        setMessages((prev) => {
-          const last = prev[prev.length - 1]
-          if (!last || last.role !== 'assistant') return prev
-          return [...prev.slice(0, -1), { ...last, streaming: false }]
+        setMessages((cur) => {
+          const last = cur[cur.length - 1]
+          if (!last || last.role !== 'assistant') return cur
+          return [...cur.slice(0, -1), { ...last, streaming: false }]
         })
         abortRef.current = null
       },
       (err) => {
-        setMessages((prev) => {
-          const last = prev[prev.length - 1]
-          if (!last || last.role !== 'assistant') return prev
-          return [...prev.slice(0, -1), { ...last, content: `抱歉，出了点问题：${err}`, streaming: false }]
+        setMessages((cur) => {
+          const last = cur[cur.length - 1]
+          if (!last || last.role !== 'assistant') return cur
+          return [...cur.slice(0, -1), { ...last, content: `抱歉，出了点问题：${err}`, streaming: false }]
         })
         abortRef.current = null
       }
     )
+  }
+
+  const handleSend = () => {
+    const text = input.trim()
+    if (!text) return
+    setInput('')
+    sendMessage(text)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

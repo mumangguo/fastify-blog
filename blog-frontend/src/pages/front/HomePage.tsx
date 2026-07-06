@@ -8,19 +8,30 @@ import { getArticleList } from '@/api/article'
 import { getInitStatus, initAdmin } from '@/api/user'
 import SeoMeta from '@/components/SeoMeta'
 import ArticleCard from '@/components/ArticleCard'
+import { SkeletonArticleList, SkeletonChipGroup } from '@/components/Skeleton'
 
 export default function HomePage() {
   const navigate = useNavigate()
   const [articles, setArticles] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [tags, setTags] = useState<any[]>([])
+  // 三块数据独立加载，各自的骨架屏各自消失，避免整页齐等最慢的接口
+  const [loadingArticles, setLoadingArticles] = useState(true)
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [loadingTags, setLoadingTags] = useState(true)
   const [initInfo, setInitInfo] = useState<{ username: string; password: string; message: string } | null>(null)
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    getArticleList({ pageNum: 1, pageSize: 6 }).then((res: any) => setArticles(res.data?.list || []))
-    getCategoryList().then((res: any) => setCategories(res.data || []))
-    getTagList().then((res: any) => setTags(res.data || []))
+    getArticleList({ pageNum: 1, pageSize: 6 })
+      .then((res: any) => setArticles(res.data?.list || []))
+      .finally(() => setLoadingArticles(false))
+    getCategoryList()
+      .then((res: any) => setCategories(res.data || []))
+      .finally(() => setLoadingCategories(false))
+    getTagList()
+      .then((res: any) => setTags(res.data || []))
+      .finally(() => setLoadingTags(false))
 
     // 检查系统是否已初始化管理员
     getInitStatus().then((res: any) => {
@@ -114,14 +125,18 @@ export default function HomePage() {
             <Icon icon="mdi:fire" className="text-[#87CEEB]" />
             最新文章
           </h2>
-          {articles.map((article) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              compact
-              onClick={() => navigate(`/article/${article.id}`)}
-            />
-          ))}
+          {loadingArticles ? (
+            <SkeletonArticleList count={4} />
+          ) : (
+            articles.map((article) => (
+              <ArticleCard
+                key={article.id}
+                article={article}
+                compact
+                onClick={() => navigate(`/article/${article.id}`)}
+              />
+            ))
+          )}
           <div className="text-center pt-2">
             <Button color="primary" variant="flat" onPress={() => navigate('/articles')}>
               查看更多文章
@@ -139,16 +154,20 @@ export default function HomePage() {
                 分类
               </h3>
               <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => (
-                  <Chip
-                    key={cat.id}
-                    variant="flat"
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/category/${cat.id}`)}
-                  >
-                    {cat.name}
-                  </Chip>
-                ))}
+                {loadingCategories ? (
+                  <SkeletonChipGroup count={4} />
+                ) : (
+                  categories.map((cat) => (
+                    <Chip
+                      key={cat.id}
+                      variant="flat"
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/category/${cat.id}`)}
+                    >
+                      {cat.name}
+                    </Chip>
+                  ))
+                )}
               </div>
             </CardBody>
           </Card>
@@ -161,18 +180,22 @@ export default function HomePage() {
                 标签
               </h3>
               <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <Chip
-                    key={tag.id}
-                    size="sm"
-                    color="primary"
-                    variant="flat"
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/tag/${tag.id}`)}
-                  >
-                    {tag.name}
-                  </Chip>
-                ))}
+                {loadingTags ? (
+                  <SkeletonChipGroup count={8} />
+                ) : (
+                  tags.map((tag) => (
+                    <Chip
+                      key={tag.id}
+                      size="sm"
+                      color="primary"
+                      variant="flat"
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/tag/${tag.id}`)}
+                    >
+                      {tag.name}
+                    </Chip>
+                  ))
+                )}
               </div>
             </CardBody>
           </Card>

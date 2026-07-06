@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "build:prepare": "tsx scripts/switch-db.ts postgresql && prisma generate",
+    "build:prepare": "tsx scripts/switch-db.ts postgresql && prisma generate && tsx scripts/db-push.ts",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
