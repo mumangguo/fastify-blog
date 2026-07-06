@@ -23,7 +23,6 @@ export default function AiAssistant({ content, onApply }: AiAssistantProps) {
   const [result, setResult] = useState('')
   const [activeAction, setActiveAction] = useState<string | null>(null)
   const [streaming, setStreaming] = useState(false)
-  const [thinking, setThinking] = useState(false)
   const [copied, setCopied] = useState(false)
   const abortRef = useRef<(() => void) | null>(null)
 
@@ -39,7 +38,6 @@ export default function AiAssistant({ content, onApply }: AiAssistantProps) {
 
     setLoading(true)
     setStreaming(true)
-    setThinking(false)
     setActiveAction(actionKey)
     setResult('')
     setCopied(false)
@@ -52,25 +50,17 @@ export default function AiAssistant({ content, onApply }: AiAssistantProps) {
       (delta) => {
         fullText += delta
         setResult(fullText)
-        // 正文开始输出，思考阶段结束
-        setThinking(false)
       },
       () => {
         setLoading(false)
         setStreaming(false)
-        setThinking(false)
         abortRef.current = null
       },
       (err) => {
         setLoading(false)
         setStreaming(false)
-        setThinking(false)
         abortRef.current = null
         addToast({ title: '请求失败', description: err, color: 'danger', timeout: 3000 })
-      },
-      // onReasoning：推理阶段只显示“思考中”，不把推理文本混入 result
-      () => {
-        setThinking(true)
       }
     )
   }
@@ -117,12 +107,6 @@ export default function AiAssistant({ content, onApply }: AiAssistantProps) {
 
       {(result || streaming) && (
         <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2">
-          {thinking && !result && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-400">
-              <RotateCcw className="w-3 h-3 animate-spin" />
-              <span>思考中…</span>
-            </div>
-          )}
           <TypewriterText text={result} streaming={streaming} />
           <div className="flex gap-2">
             <Button
