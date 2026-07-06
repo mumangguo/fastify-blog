@@ -2,27 +2,19 @@
   "version": 2,
   "installCommand": "cd blog-backend && npm install --include=dev && cd ../blog-frontend && npm install --include=dev",
   "buildCommand": "cd blog-backend && npm run build:prepare && npm run build && cd ../blog-frontend && npm run build",
-  "builds": [
-    {
-      "src": "api/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": "blog-backend/dist/**"
-      }
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "blog-frontend/dist"
-      }
+  "outputDirectory": "blog-frontend/dist",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "blog-backend/dist/**",
+      "maxDuration": 60
     }
-  ],
+  },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.js" },
     { "src": "/uploads/(.*)", "dest": "/blog-backend/public/uploads/$1" },
     { "src": "/docs", "dest": "/404.html" },
     { "src": "/docs/(.*)", "dest": "/404.html" },
+    { "src": "/(.*)", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
