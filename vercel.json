@@ -11,10 +11,9 @@
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.js" },
-    { "src": "/uploads/(.*)", "dest": "/blog-backend/public/uploads/$1" },
     { "src": "/docs", "dest": "/404.html" },
     { "src": "/docs/(.*)", "dest": "/404.html" },
-    { "src": "/(.*)", "dest": "/$1" },
+    { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
