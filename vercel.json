@@ -1,18 +1,47 @@
 {
-  "buildCommand": "cd blog-backend && npm run build:prepare && npm run build && cd ../blog-frontend && npm run build",
-  "outputDirectory": "blog-frontend/dist",
+  "version": 2,
   "installCommand": "cd blog-backend && npm install --include=dev && cd ../blog-frontend && npm install --include=dev",
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.js" },
-    { "source": "/uploads/(.*)", "destination": "/blog-backend/public/uploads/$1" },
-    { "source": "/docs", "destination": "/404.html" },
-    { "source": "/docs/(.*)", "destination": "/404.html" },
-    { "source": "/(.*)", "destination": "/$1" }
-  ],
-  "functions": {
-    "api/**/*.js": {
-      "includeFiles": "blog-backend/dist/**",
-      "maxDuration": 60
+  "buildCommand": "cd blog-backend && npm run build:prepare && npm run build && cd ../blog-frontend && npm run build",
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": "blog-backend/dist/**"
+      }
+    },
+    {
+      "src": "blog-frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
-  }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/uploads/(.*)", "dest": "/blog-backend/public/uploads/$1" },
+    { "src": "/docs", "dest": "/404.html" },
+    { "src": "/docs/(.*)", "dest": "/404.html" },
+    { "src": "/(.*)", "dest": "/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
 }
