@@ -1,10 +1,15 @@
 import path from 'path'
-import { IPv4, loadContentFromFile, newWithBuffer } from 'ip2region.js'
+
+// ip2region.js 是纯 ESM 包，后端编译为 CommonJS，直接顶层 import 会被 tsc 编成 require()，
+// 在运行时报 ERR_REQUIRE_ESM。用不会被 tsc 降级的动态 import 惰性加载它。
+// （tsconfig module=commonjs 时 tsc 会把普通 import() 也转成 require()，故用 Function 包裹绕过转换。）
+const dynamicImport = new Function('m', 'return import(m)') as (m: string) => Promise<any>
 
 let searcher: any = null
 
-function getSearcher() {
+async function getSearcher() {
   if (searcher) return searcher
+  const { IPv4, loadContentFromFile, newWithBuffer } = await dynamicImport('ip2region.js')
   const xdbPath = path.join(__dirname, '../../data/ip2region_v4.xdb')
   const cBuffer = loadContentFromFile(xdbPath)
   searcher = newWithBuffer(IPv4, cBuffer)
@@ -21,7 +26,7 @@ export async function lookupIpRegion(ip: string): Promise<string> {
     return '本地网络'
   }
   try {
-    const s = getSearcher()
+    const s = await getSearcher()
     const region = await s.search(ip)
     if (!region) return '未知'
     // region 格式: "国家|省份|城市|运营商|国家代码"
