@@ -11,10 +11,10 @@
       }
     },
     {
-      "src": "blog-frontend/package.json",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "blog-frontend/dist"
       }
     }
   ],
@@ -23,7 +23,6 @@
     { "src": "/uploads/(.*)", "dest": "/blog-backend/public/uploads/$1" },
     { "src": "/docs", "dest": "/404.html" },
     { "src": "/docs/(.*)", "dest": "/404.html" },
-    { "src": "/(.*)", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
