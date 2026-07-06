@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -23,9 +23,9 @@ model User {
 model Article {
   id          Int          @id @default(autoincrement())
   title       String
-  summary     String?
-  coverUrl    String?      @map("cover_url")
-  content     String
+  summary     String?      @db.Text
+  coverUrl    String?      @map("cover_url") @db.VarChar(500)
+  content     String       @db.Text
   categoryId  Int          @map("category_id")
   status      Int          @default(1)
   viewCount   Int          @default(0) @map("view_count")
@@ -47,7 +47,7 @@ model Article {
 model Category {
   id          Int       @id @default(autoincrement())
   name        String
-  description String?
+  description String?    @db.Text
   sortOrder   Int       @default(0) @map("sort_order")
   isDeleted   Int       @default(0) @map("is_deleted")
   createdTime DateTime  @default(now()) @map("created_time")
@@ -85,12 +85,12 @@ model Comment {
   articleId   Int       @map("article_id")
   nickname    String
   email       String
-  website     String?
-  content     String
+  website     String?   @db.VarChar(255)
+  content     String    @db.Text
   replyTo     Int?      @map("reply_to")
-  ip          String?   @map("ip")
-  userAgent   String?   @map("user_agent")
-  location    String?   @map("location")
+  ip          String?   @map("ip") @db.VarChar(45)
+  userAgent   String?   @map("user_agent") @db.VarChar(500)
+  location    String?   @map("location") @db.VarChar(255)
   isDeleted   Int       @default(0) @map("is_deleted")
   createdTime DateTime  @default(now()) @map("created_time")
   updatedTime DateTime  @updatedAt @map("updated_time")
@@ -106,8 +106,8 @@ model Link {
   id          Int       @id @default(autoincrement())
   name        String
   url         String
-  description String?
-  icon        String?
+  description String?  @db.Text
+  icon        String?   @db.VarChar(500)
   sortOrder   Int       @default(0) @map("sort_order")
   isDeleted   Int       @default(0) @map("is_deleted")
   createdTime DateTime  @default(now()) @map("created_time")
@@ -121,7 +121,7 @@ model Link {
 model SiteConfig {
   id          Int       @id @default(autoincrement())
   configKey   String    @unique @map("config_key")
-  configValue String?   @map("config_value")
+  configValue String?   @map("config_value") @db.Text
   isDeleted   Int       @default(0) @map("is_deleted")
   createdTime DateTime  @default(now()) @map("created_time")
   updatedTime DateTime  @updatedAt @map("updated_time")

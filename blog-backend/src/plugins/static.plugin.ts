@@ -3,10 +3,14 @@ import { FastifyInstance } from 'fastify'
 import path from 'path'
 import fs from 'fs'
 
+// 静态文件服务，仅用于本地开发访问历史上传的图片（public/uploads）。
+// 线上（Vercel）已改用图床上传（见 upload.routes.ts），且 /var/task 只读，
+// 故 serverless 环境跳过注册，避免无意义的目录操作。
 export default fp(async (fastify: FastifyInstance) => {
+  const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME
+  if (isServerless) return
+
   const root = path.join(__dirname, '../../public/uploads')
-  // Vercel 上该目录可能未随打包创建，@fastify/static 的 root 不存在会导致注册失败、整个 app 起不来。
-  // 先确保目录存在。注意：Vercel Functions 文件系统是临时的，写入不会持久化，上传持久化需另接对象存储。
   if (!fs.existsSync(root)) {
     fs.mkdirSync(root, { recursive: true })
   }
