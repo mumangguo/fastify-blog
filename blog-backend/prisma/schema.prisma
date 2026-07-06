@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  username    String   @unique
+  password    String
+  role        String   @default("admin")
+  isDeleted   Int      @default(0) @map("is_deleted")
+  createdTime DateTime @default(now()) @map("created_time")
+  updatedTime DateTime @updatedAt @map("updated_time")
+
+  @@index([isDeleted])
+  @@map("t_user")
+}
+
+model Article {
+  id          Int          @id @default(autoincrement())
+  title       String
+  summary     String?
+  coverUrl    String?      @map("cover_url")
+  content     String
+  categoryId  Int          @map("category_id")
+  status      Int          @default(1)
+  viewCount   Int          @default(0) @map("view_count")
+  isDeleted   Int          @default(0) @map("is_deleted")
+  createdTime DateTime     @default(now()) @map("created_time")
+  updatedTime DateTime     @updatedAt @map("updated_time")
+
+  category    Category     @relation(fields: [categoryId], references: [id])
+  tags        ArticleTag[]
+  comments    Comment[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([isDeleted])
+  @@index([createdTime])
+  @@map("t_article")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  isDeleted   Int       @default(0) @map("is_deleted")
+  createdTime DateTime  @default(now()) @map("created_time")
+  updatedTime DateTime  @updatedAt @map("updated_time")
+  articles    Article[]
+
+  @@index([isDeleted])
+  @@map("t_category")
+}
+
+model Tag {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  isDeleted   Int          @default(0) @map("is_deleted")
+  createdTime DateTime     @default(now()) @map("created_time")
+  updatedTime DateTime     @updatedAt @map("updated_time")
+  articles    ArticleTag[]
+
+  @@index([isDeleted])
+  @@map("t_tag")
+}
+
+model ArticleTag {
+  articleId   Int      @map("article_id")
+  tagId       Int      @map("tag_id")
+  article     Article  @relation(fields: [articleId], references: [id])
+  tag         Tag      @relation(fields: [tagId], references: [id])
+
+  @@id([articleId, tagId])
+  @@map("t_article_tag")
+}
+
+model Comment {
+  id          Int       @id @default(autoincrement())
+  articleId   Int       @map("article_id")
+  nickname    String
+  email       String
+  website     String?
+  content     String
+  replyTo     Int?      @map("reply_to")
+  ip          String?   @map("ip")
+  userAgent   String?   @map("user_agent")
+  location    String?   @map("location")
+  isDeleted   Int       @default(0) @map("is_deleted")
+  createdTime DateTime  @default(now()) @map("created_time")
+  updatedTime DateTime  @updatedAt @map("updated_time")
+  article     Article   @relation(fields: [articleId], references: [id])
+
+  @@index([articleId])
+  @@index([isDeleted])
+  @@index([createdTime])
+  @@map("t_comment")
+}
+
+model Link {
+  id          Int       @id @default(autoincrement())
+  name        String
+  url         String
+  description String?
+  icon        String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  isDeleted   Int       @default(0) @map("is_deleted")
+  createdTime DateTime  @default(now()) @map("created_time")
+  updatedTime DateTime  @updatedAt @map("updated_time")
+
+  @@index([isDeleted])
+  @@index([sortOrder])
+  @@map("t_link")
+}
+
+model SiteConfig {
+  id          Int       @id @default(autoincrement())
+  configKey   String    @unique @map("config_key")
+  configValue String?   @map("config_value")
+  isDeleted   Int       @default(0) @map("is_deleted")
+  createdTime DateTime  @default(now()) @map("created_time")
+  updatedTime DateTime  @updatedAt @map("updated_time")
+
+  @@index([configKey])
+  @@map("t_site_config")
+}

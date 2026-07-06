@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  username    String   @unique @db.VarChar(64)
+  password    String   @db.VarChar(255)
+  role        String   @default("admin") @db.VarChar(32)
+  isDeleted   Int      @default(0) @map("is_deleted")
+  createdTime DateTime @default(now()) @map("created_time")
+  updatedTime DateTime @updatedAt @map("updated_time")
+
+  @@index([isDeleted])
+  @@map("t_user")
+}
+
+model Article {
+  id          Int          @id @default(autoincrement())
+  title       String       @db.VarChar(200)
+  summary     String?      @db.Text
+  coverUrl    String?      @db.VarChar(500) @map("cover_url")
+  content     String       @db.LongText
+  categoryId  Int          @map("category_id")
+  status      Int          @default(1)
+  viewCount   Int          @default(0) @map("view_count")
+  isDeleted   Int          @default(0) @map("is_deleted")
+  createdTime DateTime     @default(now()) @map("created_time")
+  updatedTime DateTime     @updatedAt @map("updated_time")
+
+  category    Category     @relation(fields: [categoryId], references: [id])
+  tags        ArticleTag[]
+  comments    Comment[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([isDeleted])
+  @@index([createdTime])
+  @@map("t_article")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(64)
+  description String?   @db.VarChar(255)
+  sortOrder   Int       @default(0) @map("sort_order")
+  isDeleted   Int       @default(0) @map("is_deleted")
+  createdTime DateTime  @default(now()) @map("created_time")
+  updatedTime DateTime  @updatedAt @map("updated_time")
+  articles    Article[]
+
+  @@index([isDeleted])
+  @@map("t_category")
+}
+
+model Tag {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(64)
+  isDeleted   Int          @default(0) @map("is_deleted")
+  createdTime DateTime     @default(now()) @map("created_time")
+  updatedTime DateTime     @updatedAt @map("updated_time")
+  articles    ArticleTag[]
+
+  @@index([isDeleted])
+  @@map("t_tag")
+}
+
+model ArticleTag {
+  articleId   Int      @map("article_id")
+  tagId       Int      @map("tag_id")
+  article     Article  @relation(fields: [articleId], references: [id])
+  tag         Tag      @relation(fields: [tagId], references: [id])
+
+  @@id([articleId, tagId])
+  @@map("t_article_tag")
+}
+
+model Comment {
+  id          Int       @id @default(autoincrement())
+  articleId   Int       @map("article_id")
+  nickname    String    @db.VarChar(64)
+  email       String    @db.VarChar(128)
+  website     String?   @db.VarChar(255)
+  content     String    @db.Text
+  replyTo     Int?      @map("reply_to")
+  isDeleted   Int       @default(0) @map("is_deleted")
+  createdTime DateTime  @default(now()) @map("created_time")
+  updatedTime DateTime  @updatedAt @map("updated_time")
+  article     Article   @relation(fields: [articleId], references: [id])
+
+  @@index([articleId])
+  @@index([isDeleted])
+  @@index([createdTime])
+  @@map("t_comment")
+}
+
+model Link {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(64)
+  url         String    @db.VarChar(255)
+  description String?   @db.VarChar(255)
+  icon        String?   @db.VarChar(255)
+  sortOrder   Int       @default(0) @map("sort_order")
+  isDeleted   Int       @default(0) @map("is_deleted")
+  createdTime DateTime  @default(now()) @map("created_time")
+  updatedTime DateTime  @updatedAt @map("updated_time")
+
+  @@index([isDeleted])
+  @@index([sortOrder])
+  @@map("t_link")
+}
+
+model SiteConfig {
+  id          Int       @id @default(autoincrement())
+  configKey   String    @unique @db.VarChar(64) @map("config_key")
+  configValue String?   @db.Text @map("config_value")
+  isDeleted   Int       @default(0) @map("is_deleted")
+  createdTime DateTime  @default(now()) @map("created_time")
+  updatedTime DateTime  @updatedAt @map("updated_time")
+
+  @@index([configKey])
+  @@map("t_site_config")
+}

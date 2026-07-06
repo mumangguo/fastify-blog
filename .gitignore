@@ -1,0 +1,8 @@
+node_modules/
+.env
+blog-frontend/dist/
+blog-backend/dist/
+blog-backend/prisma/dev.db
+blog-backend/public/uploads/
+.uploads/
+*.tsbuildinfo

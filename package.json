@@ -1,0 +1,18 @@
+{
+  "name": "blog-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "个人博客系统 Monorepo - 前后端一体化",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd blog-frontend && npm run dev",
+    "dev:backend": "cd blog-backend && npm run dev",
+    "build:frontend": "cd blog-frontend && npm run build",
+    "build:backend": "cd blog-backend && npm run build:prepare && npm run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "postinstall": "cd blog-backend && npx prisma generate"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

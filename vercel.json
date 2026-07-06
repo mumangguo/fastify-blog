@@ -1,0 +1,19 @@
+{
+  "buildCommand": "cd blog-backend && npx tsx scripts/switch-db.ts postgresql && npx prisma generate && tsc -p tsconfig.json && cd ../blog-frontend && npm run build",
+  "outputDirectory": "blog-frontend/dist",
+  "installCommand": "npm install",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/uploads/(.*)", "destination": "/blog-backend/public/uploads/$1" },
+    { "source": "/docs", "destination": "/404.html" },
+    { "source": "/docs/(.*)", "destination": "/404.html" },
+    { "source": "/(.*)", "destination": "/$1" }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "includeFiles": "blog-backend/dist/**",
+      "runtime": "nodejs20.x",
+      "maxDuration": 60
+    }
+  }
+}

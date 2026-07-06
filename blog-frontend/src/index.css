@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #F5F5F7;
+  color: #1D1D1F;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.w-e-toolbar,
+.w-e-text-container {
+  z-index: 10 !important;
+}
+
+.w-e-full-screen-container {
+  z-index: 9999 !important;
+}
+
+/* 防止 Tailwind preflight 影响 wangEditor 内部 DOM */
+.w-e-toolbar *,
+.w-e-text-container *,
+.w-e-modal *,
+.w-e-drop-panel * {
+  margin: revert;
+  padding: revert;
+  border: revert;
+  font-weight: revert;
+  font-size: revert;
+  line-height: revert;
+  letter-spacing: revert;
+  word-spacing: revert;
+  color: revert;
+  background: revert;
+  list-style: revert;
+  text-align: revert;
+  text-decoration: revert;
+  vertical-align: revert;
+  box-sizing: revert;
+  border-collapse: revert;
+  border-spacing: revert;
+  text-transform: revert;
+  cursor: revert;
+  user-select: revert;
+}
+
+/* wangEditor 图片样式恢复 */
+.w-e-text-container img {
+  display: inline;
+  vertical-align: revert;
+}
+
+/* wangEditor 表格样式恢复 */
+.w-e-text-container table {
+  border-collapse: collapse;
+}
+
+.w-e-text-container table td,
+.w-e-text-container table th {
+  border: 1px solid #ccc;
+  padding: 4px 8px;
+}
+
+/* 页面过渡动画 */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
