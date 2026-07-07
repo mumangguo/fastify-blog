@@ -8,12 +8,12 @@
 |------|------|
 | 前端框架 | React 18 + TypeScript + Vite 5 |
 | UI 组件库 | HeroUI + Tailwind CSS + Framer Motion |
-| 富文本编辑器 | WangEditor 5 |
+| 富文本编辑器 | AiEditor（内置 AI 续写/润色/扩写/精简/翻译/总结） |
 | 前端搜索 | FlexSearch（客户端全文检索） |
 | 后端框架 | Fastify 4 + TypeScript |
 | 数据库 ORM | Prisma（支持 SQLite / MySQL / PostgreSQL） |
 | 认证 | @fastify/jwt + bcrypt |
-| AI 集成 | LangChain + DeepSeek（文章润色、续写、摘要生成） |
+| AI 集成 | LangChain + DeepSeek（编辑器内 AI 续写/润色/扩写/精简/翻译/总结、标题/摘要生成、博客分身对话） |
 | IP 归属地 | ip2region.js（离线解析） |
 | 数据分析 | Microsoft Clarity |
 | 部署平台 | Vercel（Serverless Functions） |
@@ -24,18 +24,21 @@
 
 - **首页** — Bento Grid 布局展示最新文章、分类、标签云
 - **文章列表** — 支持分页浏览，按分类/标签筛选
-- **文章详情** — 富文本渲染、标签展示、阅读量统计、SEO 元数据
+- **文章详情** — 富文本渲染、标签展示、阅读量统计、SEO 元数据、选中文本"问博客分身"浮出菜单
 - **全局搜索** — FlexSearch 客户端全文模糊搜索，`Ctrl/Cmd+K` 快捷键唤起
 - **评论系统** — 游客评论、回复功能、IP 归属地展示（基于 ip2region 离线解析）
-- **关于页面** — 站点配置动态渲染
+- **关于页面** — 站点配置动态渲染（AiEditor 富文本编辑）
+- **博客分身** — 全局 AI 聊天机器人，基于博客内容与访客对话（SSE 流式 + 打字机效果 + 文章标题自动链接）
 - **SEO 优化** — Open Graph / Twitter Card / 结构化数据 / react-helmet-async
 - **Microsoft Clarity** — 前台页面数据埋点（后台管理不加载）
 
 ### 后台管理
 
 - **仪表盘** — 文章/分类/标签/评论数量统计、近 7 天发布趋势、最新评论
-- **文章管理** — 增删改查、状态控制（发布/草稿）、富文本编辑
-- **AI 写作助手** — 标题生成、摘要提取、润色、扩写、缩写、续写（DeepSeek 驱动）
+- **文章管理** — 增删改查、状态控制（发布/草稿）、AiEditor 富文本编辑
+  - **AI 工具栏**：续写（focusBefore）、润色/扩写/精简（selected）
+  - **气泡面板**：选中文本后浮出 — 优化写作、拼写检查、翻译、总结
+  - **AI 辅助**：标题生成、摘要提取（作用于表单字段，SSE 流式逐字输出 + 打字机效果）
 - **分类管理** — CRUD 操作、排序
 - **标签管理** — CRUD 操作
 - **评论管理** — 分页查询、关键词搜索、删除、IP/归属地展示
@@ -59,7 +62,7 @@ blog/
 ├── blog-frontend/                # 前端项目
 │   ├── src/
 │   │   ├── api/                  # API 请求封装
-│   │   ├── components/           # 公共组件（SeoMeta、ArticleCard、GlobalSearch、BlogChatBot）
+│   │   ├── components/           # 公共组件（AiEditor、SeoMeta、ArticleCard、GlobalSearch、BlogChatBot）
 │   │   ├── pages/
 │   │   │   ├── front/            # 前台页面（Home、ArticleList、ArticleDetail、Search、About）
 │   │   │   └── admin/            # 后台页面（Dashboard、ArticleManage、CategoryManage 等）

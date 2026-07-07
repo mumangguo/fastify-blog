@@ -157,10 +157,12 @@ export default fp(async (fastify: FastifyInstance) => {
     // 立即发送一个 ping 事件，确认连接建立
     sseWrite(reply, 'ping', { time: Date.now() })
 
-    // 客户端断开时取消上游 LLM 请求，避免白白消耗 token 与连接
+    // 客户端断开时取消上游 LLM 请求，避免白白消耗 token 与连接。
+    // 注意：必须用 'aborted' 而非 'close'——'close' 在 POST 请求体读完就触发，
+    // 会误杀尚未开始的 LLM 流；'aborted' 仅在客户端真正中断连接时才触发。
     const abortController = new AbortController()
-    const onClientClose = () => abortController.abort()
-    request.raw.on('close', onClientClose)
+    const onClientAbort = () => abortController.abort()
+    request.raw.on('aborted', onClientAbort)
 
     // 心跳延迟启动：首 token 较快时不发多余 ping
     let stopHeartbeat: (() => void) | null = startHeartbeat(reply)
@@ -197,7 +199,102 @@ export default fp(async (fastify: FastifyInstance) => {
         sseWrite(reply, 'error', { message: err.message || 'AI 服务请求失败' })
       }
     } finally {
-      request.raw.removeListener('close', onClientClose)
+      request.raw.removeListener('aborted', onClientAbort)
+      reply.raw.end()
+    }
+    return reply.hijack()
+  })
+
+  // ========== AiEditor 通用 AI 端点 (SSE 流式) ==========
+  // 使用 LangChain 的 stream() 逐 chunk 接收，对内容不做任何处理，
+  // LangChain 吐什么就直接封装成 SSE 帧转发给前端。
+  fastify.post('/api/ai/aieditor', async (request: any, reply) => {
+    const { prompt } = request.body || {}
+    if (!prompt) {
+      reply.code(400)
+      return { code: 400, msg: '缺少 prompt 参数', data: null }
+    }
+
+    sseHead(reply)
+
+    const flush = () => (reply.raw as any).flush?.()
+
+    // 写一条 SSE 帧（event + data）
+    const sseWriteJson = (data: any) => {
+      reply.raw.write(`event: message\n`)
+      reply.raw.write(`data: ${JSON.stringify(data)}\n\n`)
+      flush()
+    }
+
+    // 立即发送一个注释行确认连接建立
+    reply.raw.write(': ping\n\n')
+    flush()
+
+    // 客户端断开时取消上游 LLM 请求。
+    // 只监听 'aborted'，不用 socket 'close'——在某些 Fastify/Node 版本里
+    // socket 'close' 会在 POST body 读完时误触发，导致 LLM 流被错误取消。
+    const abortController = new AbortController()
+    const onClientAbort = () => abortController.abort()
+    request.raw.on('aborted', onClientAbort)
+
+    // 心跳：用 SSE 注释行保活，避免被代理/Vercel 关闭空闲连接。
+    // 收到首 token 就停；若 20 秒内首 token 未到也停（避免空载长跑）。
+    const heartbeat = setInterval(() => {
+      reply.raw.write(': ping\n\n')
+      flush()
+    }, 15000)
+
+    const stopHeartbeat = () => {
+      clearInterval(heartbeat)
+    }
+    // 兜底：20 秒后无论如何停掉心跳，避免资源泄漏
+    const heartbeatGuard = setTimeout(stopHeartbeat, 20000)
+
+    fastify.log.info('[AIaieditor] start streaming, prompt length=' + prompt.length)
+
+    let hasToken = false
+
+    try {
+      const model = createModel(768)
+      const stream = await model.stream(
+        [
+          new SystemMessage(
+            '你是一个专业的文章写作助手。请根据用户的指令对内容进行处理，只返回处理后的结果文本，不要添加任何解释说明，不要包裹在 Markdown 代码块中。'
+          ),
+          new HumanMessage(prompt),
+        ],
+        { signal: abortController.signal }
+      )
+
+      for await (const chunk of stream) {
+        const text = extractText(chunk.content)
+        if (text) {
+          hasToken = true
+          stopHeartbeat()
+          clearTimeout(heartbeatGuard)
+          // 对内容不做任何处理，LangChain 吐什么就发什么
+          sseWriteJson({ content: text, status: 1 })
+        }
+      }
+
+      stopHeartbeat()
+      clearTimeout(heartbeatGuard)
+      // 流结束（含 LLM 返回空内容的场景），通知前端
+      sseWriteJson({ content: '', status: 2 })
+      fastify.log.info(`[AIaieditor] stream done, hasToken=${hasToken}`)
+    } catch (err: any) {
+      stopHeartbeat()
+      clearTimeout(heartbeatGuard)
+      fastify.log.error({ err }, '[AIaieditor] streaming error: ' + (err?.message || err?.name || 'unknown'))
+      if (err?.name !== 'AbortError') {
+        sseWriteJson({ content: '', status: 2, error: err?.message || 'AI 服务请求失败' })
+      } else {
+        // 也发一个结束帧，避免前端无限等待
+        sseWriteJson({ content: '', status: 2 })
+      }
+    } finally {
+      request.raw.removeListener('aborted', onClientAbort)
+      clearTimeout(heartbeatGuard)
       reply.raw.end()
     }
     return reply.hijack()
@@ -270,10 +367,11 @@ ${articleContext || '暂无文章'}
     // 立即发送一个 ping 事件，确认连接建立
     sseWrite(reply, 'ping', { time: Date.now() })
 
-    // 客户端断开时取消上游 LLM 请求
+    // 客户端断开时取消上游 LLM 请求。
+    // 用 'aborted' + socket 'close'，避免 'close' 在 POST body 读完时误触发。
     const abortController = new AbortController()
-    const onClientClose = () => abortController.abort()
-    request.raw.on('close', onClientClose)
+    const onClientAbort = () => abortController.abort()
+    request.raw.on('aborted', onClientAbort)
 
     // 心跳延迟启动：首 token 较快时不发多余 ping
     let stopHeartbeat: (() => void) | null = startHeartbeat(reply)
@@ -308,7 +406,7 @@ ${articleContext || '暂无文章'}
         sseWrite(reply, 'error', { message: err.message || 'AI 服务请求失败' })
       }
     } finally {
-      request.raw.removeListener('close', onClientClose)
+      request.raw.removeListener('aborted', onClientAbort)
       reply.raw.end()
     }
     return reply.hijack()

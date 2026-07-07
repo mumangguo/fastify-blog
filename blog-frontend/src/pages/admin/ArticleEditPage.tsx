@@ -1,15 +1,13 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, CardBody, Button, Input, Textarea, Select, SelectItem, Chip, addToast } from '@heroui/react'
-import { Editor, Toolbar } from '@wangeditor/editor-for-react'
-import { IDomEditor, IEditorConfig, IToolbarConfig } from '@wangeditor/editor'
-import '@wangeditor/editor/dist/css/style.css'
-import { Plus, Save } from 'lucide-react'
+import { Plus, Save, Sparkles, RotateCcw } from 'lucide-react'
+import AiEditor from '@/components/AiEditor'
 import { getArticleDetail, addArticle, updateArticle } from '@/api/article'
 import { getCategoryList } from '@/api/category'
 import { getTagList } from '@/api/tag'
 import { uploadFile } from '@/api/upload'
-import AiAssistant from '@/components/AiAssistant'
+import { ssePost } from '@/api/ai'
 
 export default function ArticleEditPage() {
   const { id } = useParams()
@@ -26,21 +24,9 @@ export default function ArticleEditPage() {
     tagIds: [] as number[],
     status: 1,
   })
-  const [editor, setEditor] = useState<IDomEditor | null>(null)
-  const pendingHtmlRef = useRef<string | null>(null)
-  const editorRef = useRef<IDomEditor | null>(null)
-  const toolbarConfig: Partial<IToolbarConfig> = {}
-  const editorConfig: Partial<IEditorConfig> = {
-    placeholder: '请输入内容...',
-    MENU_CONF: {
-      uploadImage: {
-        async customUpload(file: File, insertFn: any) {
-          const res: any = await uploadFile(file)
-          insertFn(res.data?.url, '', res.data?.url)
-        },
-      },
-    },
-  }
+  // 编辑器内容独立于 form，避免 AiEditor 的 onChange 频繁触发 form 重渲染
+  const [editorHtml, setEditorHtml] = useState('')
+  const [loaded, setLoaded] = useState(!isEdit)
 
   useEffect(() => {
     getCategoryList().then((res: any) => setCategories(res.data || []))
@@ -48,41 +34,28 @@ export default function ArticleEditPage() {
     if (isEdit) {
       getArticleDetail(Number(id)).then((res: any) => {
         const d = res.data
-        if (!d) return
-        const content = d.content || ''
+        if (!d) { setLoaded(true); return }
         setForm({
           title: d.title || '',
           summary: d.summary || '',
           coverUrl: d.coverUrl || '',
-          content,
+          content: d.content || '',
           categoryId: d.categoryId != null ? String(d.categoryId) : '',
           tagIds: d.tags?.map((t: any) => t.tag?.id ?? t.tagId) || [],
           status: d.status ?? 1,
         })
-        if (editorRef.current && content) {
-          try { editorRef.current.setHtml(content) } catch (e) { console.error(e) }
-        } else {
-          pendingHtmlRef.current = content
-        }
+        setEditorHtml(d.content || '')
+        setLoaded(true)
       })
     }
   }, [id])
-
-  const handleEditorCreated = (ed: IDomEditor) => {
-    setEditor(ed)
-    editorRef.current = ed
-    if (pendingHtmlRef.current) {
-      try { ed.setHtml(pendingHtmlRef.current) } catch (e) { console.error(e) }
-      pendingHtmlRef.current = null
-    }
-  }
 
   const handleSave = async (status: number) => {
     const data = {
       ...form,
       categoryId: Number(form.categoryId),
       status,
-      content: editorRef.current?.getHtml() || form.content,
+      content: editorHtml,
     }
     if (isEdit) {
       await updateArticle({ id: Number(id), ...data })
@@ -100,74 +73,8 @@ export default function ArticleEditPage() {
   }
 
   const getPlainText = () => {
-    return editorRef.current?.getText?.() || form.content.replace(/<[^>]+>/g, '') || ''
+    return editorHtml ? editorHtml.replace(/<[^>]+>/g, '') : ''
   }
-
-  /**
-   * AI 改写动画：将新内容以打字机方式写入编辑器
-   */
-  const animateRewrite = useCallback((newText: string) => {
-    const ed = editorRef.current
-    if (!ed) return
-
-    // 1. 全选当前内容并高亮闪烁
-    ed.selectAll()
-    const selection = ed.selection
-    if (selection) {
-      // 添加临时高亮样式
-      ed.addMark('bgColor', '#FFE066')
-    }
-
-    // 2. 短暂延迟后清除并逐字输入新内容
-    setTimeout(() => {
-      ed.clear()
-      ed.focus()
-
-      let index = 0
-      const chars = newText.split('')
-      const interval = setInterval(() => {
-        if (index >= chars.length) {
-          clearInterval(interval)
-          setForm((prev: any) => ({ ...prev, content: ed.getHtml() }))
-          addToast({ title: 'AI 改写完成', color: 'success', timeout: 2000 })
-          return
-        }
-        // 每批输入 2-3 个字符，模拟快速打字
-        const batch = chars.slice(index, index + 2)
-        ed.insertText(batch.join(''))
-        index += 2
-      }, 15)
-    }, 600)
-  }, [])
-
-  const handleAiApply = (result: string, action: string) => {
-    switch (action) {
-      case 'title':
-        setForm((prev: any) => ({ ...prev, title: result.split('\n')[0].trim() }))
-        addToast({ title: '标题已更新', color: 'success', timeout: 2000 })
-        break
-      case 'summary':
-        setForm((prev: any) => ({ ...prev, summary: result }))
-        addToast({ title: '摘要已更新', color: 'success', timeout: 2000 })
-        break
-      case 'polish':
-      case 'expand':
-      case 'shrink':
-        // 正文改写动画效果
-        animateRewrite(result)
-        break
-      case 'continue':
-        // 续写：在末尾追加
-        editorRef.current?.insertText(result)
-        addToast({ title: '续写内容已插入', color: 'success', timeout: 2000 })
-        break
-      default:
-        editorRef.current?.insertText(result)
-    }
-  }
-
-  // HeroUI Select 的 selectedKeys 必须是 Set 类型
-  const categorySelection = form.categoryId ? new Set([String(form.categoryId)]) : new Set<string>()
 
   return (
     <div className="space-y-4">
@@ -186,6 +93,19 @@ export default function ArticleEditPage() {
 
       <Card className="rounded-2xl shadow-sm">
         <CardBody className="p-5 space-y-4">
+          {/* AI 标题/摘要生成（作用于表单字段，保留独立入口） */}
+          <AiTitleSummary
+            content={getPlainText()}
+            onApplyTitle={(t) => {
+              setForm((prev: any) => ({ ...prev, title: t.split('\n')[0].trim() }))
+              addToast({ title: '标题已更新', color: 'success', timeout: 2000 })
+            }}
+            onApplySummary={(s) => {
+              setForm((prev: any) => ({ ...prev, summary: s }))
+              addToast({ title: '摘要已更新', color: 'success', timeout: 2000 })
+            }}
+          />
+
           <Input label="标题" value={form.title} onValueChange={(v) => setForm((prev: any) => ({ ...prev, title: v }))} />
           <Textarea label="摘要" value={form.summary} onValueChange={(v) => setForm((prev: any) => ({ ...prev, summary: v }))} />
 
@@ -204,7 +124,7 @@ export default function ArticleEditPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select
               label="分类"
-              selectedKeys={categorySelection}
+              selectedKeys={form.categoryId ? new Set([String(form.categoryId)]) : new Set<string>()}
               onSelectionChange={(s) => {
                 const keys = s as Set<string>
                 const first = keys.values().next().value
@@ -238,25 +158,95 @@ export default function ArticleEditPage() {
             </div>
           </div>
 
-          {/* AI 写作助手 */}
-          <AiAssistant content={getPlainText()} onApply={handleAiApply} />
-
-          {/* 富文本编辑器 */}
+          {/* 富文本编辑器（AiEditor，内置 AI 续写/润色/扩写/精简） */}
           <div>
             <label className="text-sm font-medium mb-2 block">正文</label>
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <Toolbar editor={editor} defaultConfig={toolbarConfig} mode="default" className="border-b border-gray-200" />
-              <Editor
-                defaultConfig={editorConfig}
-                onCreated={handleEditorCreated}
-                onChange={(ed) => setForm((prev: any) => ({ ...prev, content: ed.getHtml() }))}
-                mode="default"
-                style={{ height: '400px', overflowY: 'hidden' }}
-              />
-            </div>
+              {loaded ? (
+                <AiEditor
+                  placeholder="请输入正文内容..."
+                  value={editorHtml}
+                  onChange={setEditorHtml}
+                />
+              ) : (
+                <div className="h-[400px] flex items-center justify-center text-gray-400">加载中...</div>
+              )}
           </div>
         </CardBody>
       </Card>
+    </div>
+  )
+}
+
+/** AI 标题/摘要生成（作用于表单字段） */
+function AiTitleSummary({
+  content,
+  onApplyTitle,
+  onApplySummary,
+}: {
+  content: string
+  onApplyTitle: (text: string) => void
+  onApplySummary: (text: string) => void
+}) {
+  const [loading, setLoading] = useState<string | null>(null)
+  const abortRef = useRef<(() => void) | null>(null)
+
+  const handleAction = (action: 'title' | 'summary') => {
+    if (!content.trim()) {
+      addToast({ title: '提示', description: '请先在编辑器中输入一些内容', color: 'warning', timeout: 2000 })
+      return
+    }
+    if (abortRef.current) {
+      abortRef.current()
+      abortRef.current = null
+    }
+    setLoading(action)
+    let fullText = ''
+    abortRef.current = ssePost(
+      '/ai/writer',
+      { action, content },
+      (delta) => {
+        fullText += delta
+      },
+      () => {
+        setLoading(null)
+        abortRef.current = null
+        if (action === 'title') onApplyTitle(fullText)
+        else onApplySummary(fullText)
+      },
+      (err) => {
+        setLoading(null)
+        abortRef.current = null
+        addToast({ title: '请求失败', description: err, color: 'danger', timeout: 3000 })
+      }
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+      <Sparkles className="w-4 h-4 text-[#87CEEB] shrink-0" />
+      <span className="text-sm font-medium shrink-0">AI 辅助</span>
+      <div className="flex gap-2 ml-auto">
+        <Button
+          size="sm"
+          variant="flat"
+          isDisabled={loading !== null}
+          onPress={() => handleAction('title')}
+        >
+          {loading === 'title' ? (
+            <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3 animate-spin" />生成中...</span>
+          ) : '生成标题'}
+        </Button>
+        <Button
+          size="sm"
+          variant="flat"
+          isDisabled={loading !== null}
+          onPress={() => handleAction('summary')}
+        >
+          {loading === 'summary' ? (
+            <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3 animate-spin" />生成中...</span>
+          ) : '生成摘要'}
+        </Button>
+      </div>
     </div>
   )
 }
