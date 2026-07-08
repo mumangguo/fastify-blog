@@ -5,11 +5,7 @@
   "outputDirectory": "blog-frontend/dist",
   "functions": {
     "api/index.js": {
-      "includeFiles": [
-        "blog-backend/dist/**",
-        "blog-backend/data/ip2region_v4.xdb",
-        "blog-backend/data/sensitive_words.txt"
-      ],
+      "includeFiles": "blog-backend/{dist,data}/**",
       "maxDuration": 60
     }
   },
