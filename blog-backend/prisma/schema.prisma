@@ -88,6 +88,9 @@ model Comment {
   website     String?
   content     String
   replyTo     Int?      @map("reply_to")
+  ip          String?
+  userAgent   String?
+  location    String?
   isDeleted   Int       @default(0) @map("is_deleted")
   createdTime DateTime  @default(now()) @map("created_time")
   updatedTime DateTime  @updatedAt @map("updated_time")

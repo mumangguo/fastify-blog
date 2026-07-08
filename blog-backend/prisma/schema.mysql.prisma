@@ -88,6 +88,9 @@ model Comment {
   website     String?   @db.VarChar(255)
   content     String    @db.Text
   replyTo     Int?      @map("reply_to")
+  ip          String?   @db.VarChar(45)
+  userAgent   String?   @db.VarChar(500)
+  location    String?   @db.VarChar(255)
   isDeleted   Int       @default(0) @map("is_deleted")
   createdTime DateTime  @default(now()) @map("created_time")
   updatedTime DateTime  @updatedAt @map("updated_time")
