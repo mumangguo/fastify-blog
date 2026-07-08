@@ -21,7 +21,7 @@ const defaults = {
 }
 
 export default function SeoMeta({ title, description, keywords, author, image, url, type }: SeoProps) {
-  const t = title ? `${title} | 木芒果` : defaults.title
+  const t = title ? `${title} - 木芒果` : defaults.title
   const desc = description || defaults.description
   const kw = keywords || defaults.keywords
   const img = image || defaults.image

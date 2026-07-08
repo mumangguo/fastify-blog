@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { Pagination } from '@heroui/react'
 import { getArticleList } from '@/api/article'
+import SeoMeta from '@/components/SeoMeta'
 import ArticleCard from '@/components/ArticleCard'
 import { SkeletonArticleList } from '@/components/Skeleton'
 
@@ -10,6 +11,14 @@ export default function ArticleListPage() {
   const [searchParams] = useSearchParams()
   const tagId = searchParams.get('tagId')
   const navigate = useNavigate()
+  // 当前列表类型：分类 / 标签 / 全量
+  const listType = id ? 'category' : tagId ? 'tag' : 'all'
+  const listTypeName = id ? '分类文章' : tagId ? '标签文章' : '全部文章'
+  const metaDescription =
+    id || tagId
+      ? `浏览木芒果博客的${listTypeName}，涵盖前端开发、后端架构、数据库等技术领域。`
+      : '浏览木芒果博客的全部文章，涵盖前端开发、后端架构、数据库设计等技术领域。'
+
   const [articles, setArticles] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -36,9 +45,11 @@ export default function ArticleListPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold mb-4">
-        {id ? '分类文章' : tagId ? '标签文章' : '全部文章'}
-      </h1>
+      <SeoMeta
+        title={listTypeName}
+        description={metaDescription}
+      />
+      <h1 className="text-2xl font-bold mb-4">{listTypeName}</h1>
       {loading ? (
         <SkeletonArticleList count={pageSize} />
       ) : (

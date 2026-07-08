@@ -64,7 +64,6 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       <SeoMeta
-        title="首页"
         description="木芒果的个人博客，记录技术成长，分享编程心得与生活点滴。涵盖前端开发、后端架构、数据库设计等技术领域。"
       />
 

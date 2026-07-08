@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Card, CardBody, Pagination } from '@heroui/react'
 import { Icon } from '@iconify/react'
 import { searchArticles } from '@/api/article'
+import SeoMeta from '@/components/SeoMeta'
 import ArticleCard from '@/components/ArticleCard'
 
 export default function SearchPage() {
@@ -27,10 +28,20 @@ export default function SearchPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const searchTitle = q ? `搜索：${q}` : '搜索'
+  const searchDescription = q
+    ? `在木芒果博客中搜索“${q}”的结果，涵盖前端开发、后端架构等技术文章。`
+    : '搜索木芒果博客中的全部技术文章与生活记录。'
+
   return (
     <div className="space-y-4">
+      <SeoMeta
+        title={searchTitle}
+        description={searchDescription}
+        keywords={q ? `${q},木芒果,个人博客,技术博客` : undefined}
+      />
       <h1 className="text-2xl font-bold mb-4">
-        <Icon icon="mdi:magnify" className="inline text-[#87CEEB]" /> 搜索结果：{q}
+        <Icon icon="mdi:magnify" className="inline text-[#87CEEB]" /> 搜索结果：{q || '—'}
       </h1>
       {articles.length === 0 && (
         <Card className="rounded-2xl">
