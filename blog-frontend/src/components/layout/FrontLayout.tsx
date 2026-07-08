@@ -1,7 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState, useCallback } from 'react'
-import { Helmet } from 'react-helmet-async'
-
 import { Icon } from '@iconify/react'
 import { Search } from 'lucide-react'
 import { getCategoryList } from '@/api/category'
@@ -50,17 +48,6 @@ export default function FrontLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F5F7]">
-      {/* Microsoft Clarity 埋点 */}
-      <Helmet>
-        <script type="text/javascript">
-          {`(function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "xhmghsly2z");`}
-        </script>
-      </Helmet>
-
       {/* 顶部导航 */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">

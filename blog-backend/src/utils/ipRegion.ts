@@ -36,7 +36,8 @@ export async function lookupIpRegion(ip: string): Promise<string> {
       (p: string, i: number) => p && p !== '0' && i < 4
     )
     return meaningful.join(' ') || '未知'
-  } catch {
+  } catch (e) {
+    console.error('[lookupIpRegion] 查询失败, ip:', ip, 'error:', e)
     return '未知'
   }
 }
